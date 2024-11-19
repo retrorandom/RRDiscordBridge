@@ -18,17 +18,17 @@ public class PlayersCommand extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getName().equals("players")) {
-            Player[] players = Bukkit.getServer().getOnlinePlayers();
+            Player[] players = RRDiscordBridge.getOnlinePlayers();
             StringBuilder playerList = new StringBuilder();
 
-            EmbedBuilder builder = new EmbedBuilder().setTitle(String.format("%s player(s) online", Bukkit.getServer().getOnlinePlayers().length));
+            EmbedBuilder builder = new EmbedBuilder().setTitle(String.format("%s player(s) online", RRDiscordBridge.getOnlinePlayers().length));
 
                 if (RRDiscordBridge.settings.publicPlayerNames) {
                     if (players.length == 0)
                         playerList.append("No players online.");
 
                     Arrays.stream(players).forEach(player -> {
-                        playerList.append(String.format(" - %s%s\n", player.isOp() && RRDiscordBridge.settings.publicOperatorNames ? "[OP]" : "", player.getName()));
+                        playerList.append(String.format(" - %s%s\n", player.isOp() && RRDiscordBridge.settings.publicOperatorNames ? "[OP] " : "", player.getName()));
                     });
 
                     builder.setDescription(playerList);

@@ -1,7 +1,7 @@
 package io.github.dexrnzacattack.rrdiscordbridge;
 
-import org.bukkit.craftbukkit.libs.com.google.gson.Gson;
-import org.bukkit.craftbukkit.libs.com.google.gson.GsonBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.*;
 import java.util.Arrays;

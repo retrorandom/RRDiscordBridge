@@ -24,9 +24,8 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.craftbukkit.libs.com.google.gson.Gson;
-import org.bukkit.craftbukkit.libs.com.google.gson.GsonBuilder;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerChatEvent;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -107,7 +106,7 @@ public class DiscordBot extends ListenerAdapter {
      * Sets the RPC status
      */
     public static void setPlayerCount() {
-        Activity activity = Activity.playing(String.format("with %s %s", Bukkit.getOnlinePlayers().length, Bukkit.getOnlinePlayers().length != 1 ? "players" : "player"));
+        Activity activity = Activity.playing(String.format("with %s %s", RRDiscordBridge.getOnlinePlayers().length, RRDiscordBridge.getOnlinePlayers().length != 1 ? "players" : "player"));
         jda.getPresence().setActivity(activity);
     }
 
@@ -283,6 +282,30 @@ public class DiscordBot extends ListenerAdapter {
 
     /**
      * Sends a message using a webhook that uses the player's name and skin.
+     * For bukkit 1.2.5 and lower.
+     *
+     * @param event PlayerChatEvent which can be obtained from onPlayerChat
+     */
+    public static void sendPlayerMessageLegacy(PlayerChatEvent event) {
+        if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
+            return;
+
+        // disallows @everyone lol
+        AllowedMentions allowedMentions = new AllowedMentions()
+                .withParseUsers(true)
+                .withParseEveryone(false);
+
+        WebhookMessage message = new WebhookMessageBuilder()
+                .setUsername(event.getPlayer().getName())
+                .setAvatarUrl(String.format(settings.skinProvider, event.getPlayer().getName()))
+                .setContent(event.getMessage())
+                .setAllowedMentions(allowedMentions)
+                .build();
+        webhookClient.send(message);
+    }
+
+    /**
+     * Sends a message using a webhook that uses the player's name and skin.
      *
      * @param event AsyncPlayerChatEvent which can be obtained from onPlayerChat
      */
@@ -326,6 +349,7 @@ public class DiscordBot extends ListenerAdapter {
                 .build();
         webhookClient.send(wMessage);
     }
+
 
     /**
      * Sends a message using a webhook that uses the player's name and skin.

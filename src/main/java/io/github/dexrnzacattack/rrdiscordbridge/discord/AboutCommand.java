@@ -23,14 +23,28 @@ public class AboutCommand extends ListenerAdapter {
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
+    public static boolean isMotdSupported() {
+        try {
+            Class<?> playerDeathEventClass = Class.forName("org.bukkit.Server");
+            playerDeathEventClass.getMethod("getMotd");
+            return true;
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getName().equals("about")) {
             EmbedBuilder builder = new EmbedBuilder()
                     .setTitle("About")
-                    .addField("Name", Bukkit.getServer().getServerName(), true)
-                    .addField("MOTD", Bukkit.getServer().getMotd(), true)
-                    .addField("Version", Bukkit.getServer().getVersion(), true);
+                    .addField("Name", Bukkit.getServer().getServerName(), true);
+
+            // doesn't work in 1.1-
+            if (isMotdSupported())
+                builder.addField("MOTD", Bukkit.getServer().getMotd(), true);
+
+            builder.addField("Version", Bukkit.getServer().getVersion(), true);
 
             if (RRDiscordBridge.settings.publicOperatorNames)
                 builder.addField("Operators", (!Bukkit.getServer().getOperators().isEmpty()
