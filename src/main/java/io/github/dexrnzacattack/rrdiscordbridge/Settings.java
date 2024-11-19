@@ -41,6 +41,7 @@ public class Settings {
     public String broadcastSkinName;
     /** Events that the bot will send to the relay channel */
     public List<Events> enabledEvents;
+    /** Events that the bot will relay from the relay channel */
     public List<DiscordEvents> enabledDiscordEvents;
 
     /**
