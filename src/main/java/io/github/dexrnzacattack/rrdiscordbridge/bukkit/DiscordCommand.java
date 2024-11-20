@@ -12,9 +12,9 @@ public class DiscordCommand implements CommandExecutor {
         if (sender instanceof Player) {
             Player player = (Player) sender;
             if (!RRDiscordBridge.settings.discordInvite.isEmpty())
-                player.sendMessage("Join us on discord at " + RRDiscordBridge.settings.discordInvite);
+                player.sendMessage(String.format("Join us on discord at §n%s", RRDiscordBridge.settings.discordInvite));
             else
-                player.sendMessage("Discord invite link is not set.");
+                player.sendMessage("§cDiscord invite link is not set.");
         }
         return true;
     }

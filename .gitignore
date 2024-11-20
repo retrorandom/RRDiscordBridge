@@ -40,3 +40,4 @@ build/
 ### Extra ###
 lib
 /lib
+dependency-reduced-pom.xml

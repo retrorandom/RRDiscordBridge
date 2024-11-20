@@ -7,6 +7,7 @@ import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
+import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensions;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -14,33 +15,25 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.events.user.UserActivityStartEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 
-import javax.annotation.Nonnull;
 import java.awt.*;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.settings;
 
 public class DiscordBot extends ListenerAdapter {
     private static TextChannel channel;
-    private static WebhookClient webhookClient;
+    public static WebhookClient webhookClient;
     public static JDA jda;
 
     /**
@@ -83,8 +76,8 @@ public class DiscordBot extends ListenerAdapter {
         setPlayerCount();
 
         channel.getGuild().updateCommands().addCommands(
-                Commands.slash("players", "Shows you every player that is online."),
-                Commands.slash("about", "Server Info")
+                Commands.slash("players", "List of online players"),
+                Commands.slash("about", "Server info")
         ).queue();
     }
 
@@ -92,13 +85,13 @@ public class DiscordBot extends ListenerAdapter {
      * Stops the bot
      */
     public static void stop() {
+        if (channel != null) {
+            channel.getJDA().shutdown();
+        }
+
         if (webhookClient != null) {
             webhookClient.close();
             webhookClient = null;
-        }
-
-        if (channel != null) {
-            channel.getJDA().shutdownNow();
         }
     }
 
@@ -114,12 +107,12 @@ public class DiscordBot extends ListenerAdapter {
      * Runs when the bot is ready for use
      */
     @Override
-    public void onReady(@Nonnull ReadyEvent event) {
+    public void onReady(ReadyEvent event) {
         channel = event.getJDA().getTextChannelById(settings.channelId);
     }
 
     /** Runs when someone runs a command in the channel the bot is watching */
-    public void onSlashCommandInteraction(@Nonnull SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getChannel().getId().equals(settings.channelId) && !event.getInteraction().getMember().getId().equals(event.getJDA().getSelfUser().getId()) && !event.getInteraction().getMember().getId().equals(Long.toString(settings.webhookId))) {
             String author = settings.useDisplayNames ? event.getUser().getGlobalName() : event.getUser().getName();
             Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s ran Discord command \"/%s\".", author, event.getFullCommandName()));
@@ -153,7 +146,7 @@ public class DiscordBot extends ListenerAdapter {
      * Runs when a message is received in the channel the bot is watching
      */
     @Override
-    public void onMessageReceived(@Nonnull MessageReceivedEvent event) {
+    public void onMessageReceived(MessageReceivedEvent event) {
         // this method kinda sucks
         if (event.getChannel().getId().equals(settings.channelId) && !event.getAuthor().getId().equals(event.getJDA().getSelfUser().getId()) && !event.getAuthor().getId().equals(Long.toString(settings.webhookId))) {
             // so basically traits are things about the message, for example, if a message got trimmed for being too long, it will have (T) added to the message inside MC.
@@ -290,6 +283,12 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
             return;
 
+        Object[] chatExt = ChatExtensions.tryParse(event.getMessage(), event.getPlayer().getName());
+        String msg = (String)chatExt[0];
+
+        if (!(boolean) chatExt[2])
+            return;
+
         // disallows @everyone lol
         AllowedMentions allowedMentions = new AllowedMentions()
                 .withParseUsers(true)
@@ -298,7 +297,7 @@ public class DiscordBot extends ListenerAdapter {
         WebhookMessage message = new WebhookMessageBuilder()
                 .setUsername(event.getPlayer().getName())
                 .setAvatarUrl(String.format(settings.skinProvider, event.getPlayer().getName()))
-                .setContent(event.getMessage())
+                .setContent(msg)
                 .setAllowedMentions(allowedMentions)
                 .build();
         webhookClient.send(message);
@@ -313,6 +312,12 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
             return;
 
+        Object[] chatExt = ChatExtensions.tryParse(event.getMessage(), event.getPlayer().getName());
+        String msg = (String)chatExt[0];
+
+        if (!(boolean) chatExt[2])
+            return;
+
         // disallows @everyone lol
         AllowedMentions allowedMentions = new AllowedMentions()
                 .withParseUsers(true)
@@ -321,7 +326,7 @@ public class DiscordBot extends ListenerAdapter {
         WebhookMessage message = new WebhookMessageBuilder()
                 .setUsername(event.getPlayer().getName())
                 .setAvatarUrl(String.format(settings.skinProvider, event.getPlayer().getName()))
-                .setContent(event.getMessage())
+                .setContent(msg)
                 .setAllowedMentions(allowedMentions)
                 .build();
         webhookClient.send(message);
@@ -362,6 +367,12 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(eventType))
             return;
 
+        Object[] chatExt = ChatExtensions.tryParse(message, playerName);
+        String msg = (String)chatExt[0];
+
+        if (!(boolean) chatExt[2])
+            return;
+
         AllowedMentions allowedMentions = new AllowedMentions()
                 .withParseUsers(true)
                 .withParseEveryone(false);
@@ -369,7 +380,7 @@ public class DiscordBot extends ListenerAdapter {
         WebhookMessage wMessage = new WebhookMessageBuilder()
                 .setUsername(playerName)
                 .setAvatarUrl(String.format(settings.skinProvider, playerName))
-                .setContent(message)
+                .setContent(msg)
                 .setAllowedMentions(allowedMentions)
                 .build();
         webhookClient.send(wMessage);
@@ -411,6 +422,12 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(eventType))
             return;
 
+        Object[] chatExt = ChatExtensions.tryParse(message, playerName);
+        String msg = (String)chatExt[0];
+
+        if (!(boolean) chatExt[2])
+            return;
+
         AllowedMentions allowedMentions = new AllowedMentions()
                 .withParseUsers(true)
                 .withParseEveryone(false);
@@ -418,7 +435,7 @@ public class DiscordBot extends ListenerAdapter {
         WebhookMessage wMessage = new WebhookMessageBuilder()
                 .setUsername(playerName)
                 .setAvatarUrl(String.format(settings.skinProvider, playerSkinName))
-                .setContent(message)
+                .setContent(msg)
                 .setAllowedMentions(allowedMentions)
                 .build();
         webhookClient.send(wMessage);

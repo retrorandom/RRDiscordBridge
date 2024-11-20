@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 
 import java.io.File;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class AboutCommand extends ListenerAdapter {
@@ -25,8 +26,28 @@ public class AboutCommand extends ListenerAdapter {
 
     public static boolean isMotdSupported() {
         try {
-            Class<?> playerDeathEventClass = Class.forName("org.bukkit.Server");
-            playerDeathEventClass.getMethod("getMotd");
+            Class<?> motdClass = Class.forName("org.bukkit.Server");
+            motdClass.getMethod("getMotd");
+            return true;
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    public static boolean isServerNameSupported() {
+        try {
+            Class<?> serverNameClass = Class.forName("org.bukkit.Server");
+            serverNameClass.getMethod("getServerName");
+            return true;
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    public static boolean isServerIconSupported() {
+        try {
+            Class<?> serverIconClass = Class.forName("org.bukkit.Server");
+            serverIconClass.getMethod("getServerIcon");
             return true;
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             return false;
@@ -37,8 +58,13 @@ public class AboutCommand extends ListenerAdapter {
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getName().equals("about")) {
             EmbedBuilder builder = new EmbedBuilder()
-                    .setTitle("About")
-                    .addField("Name", Bukkit.getServer().getServerName(), true);
+                    .setTitle("About");
+
+            if (isServerIconSupported() && !Bukkit.getIp().isEmpty() && RRDiscordBridge.settings.showServerIcon)
+                builder.setThumbnail(String.format(RRDiscordBridge.settings.serverIconProvider, Bukkit.getIp(), Bukkit.getPort()));
+
+            if (isServerNameSupported())
+                builder.addField("Name", Bukkit.getServer().getServerName(), true);
 
             // doesn't work in 1.1-
             if (isMotdSupported())

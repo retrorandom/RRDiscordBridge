@@ -21,14 +21,11 @@ public class PlayersCommand extends ListenerAdapter {
             Player[] players = RRDiscordBridge.getOnlinePlayers();
             StringBuilder playerList = new StringBuilder();
 
-            EmbedBuilder builder = new EmbedBuilder().setTitle(String.format("%s player(s) online", RRDiscordBridge.getOnlinePlayers().length));
+            EmbedBuilder builder = new EmbedBuilder().setTitle(String.format("%s/%s player(s) online", RRDiscordBridge.getOnlinePlayers().length, Bukkit.getServer().getMaxPlayers()));
 
                 if (RRDiscordBridge.settings.publicPlayerNames) {
-                    if (players.length == 0)
-                        playerList.append("No players online.");
-
                     Arrays.stream(players).forEach(player -> {
-                        playerList.append(String.format(" - %s%s\n", player.isOp() && RRDiscordBridge.settings.publicOperatorNames ? "[OP] " : "", player.getName()));
+                        playerList.append(String.format(" - %s%s%s\n", player.isOp() && RRDiscordBridge.settings.publicOperatorNames ? "**[OP] " : "", player.getName(), player.isOp() && RRDiscordBridge.settings.publicOperatorNames ? "**" : ""));
                     });
 
                     builder.setDescription(playerList);

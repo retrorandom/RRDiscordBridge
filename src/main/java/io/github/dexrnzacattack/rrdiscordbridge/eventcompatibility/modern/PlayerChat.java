@@ -19,7 +19,8 @@ public class PlayerChat implements Listener {
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
-        if (RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
+        if (RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT)) {
             DiscordBot.sendPlayerMessage(event);
+        }
     }
 }

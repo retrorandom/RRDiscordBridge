@@ -1,9 +1,8 @@
 name: RRDiscordBridge
-version: 1.1.0
+version: 1.2.0
 main: io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge
 author: DexrnZacAttack
-description: Discord Bridge for early release versions of MC.
-api-version: 1.4.7
+description: Discord Bridge for early and modern release versions of Minecraft.
 website: https://github.com/DexrnZacattack/RRDiscordBridge
 commands:
   discord:

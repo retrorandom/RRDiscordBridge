@@ -37,8 +37,16 @@ public class Settings {
     public boolean publicOperatorNames;
     /** Changes what URL the skin images are grabbed from */
     public String skinProvider;
+    /** Changes what URL is used to grab the server's icon */
+    public String serverIconProvider;
+    /** Show the server icon when /about is used in Discord */
+    public boolean showServerIcon;
     /** Skin to use when /say or /dcbroadcast is used. */
     public String broadcastSkinName;
+    /** Use chat extensions */
+    public boolean useChatExtensions;
+    /** Optional extensions for things like embeds for waypoints */
+    public List<ChatExtensions> enabledChatExtensions;
     /** Events that the bot will send to the relay channel */
     public List<Events> enabledEvents;
     /** Events that the bot will relay from the relay channel */
@@ -99,6 +107,10 @@ public class Settings {
         FORWARDED_MESSAGE,
     }
 
+    public enum ChatExtensions {
+        WAYPOINTS
+    }
+
     /** Settings constructor, uses default values until Settings.loadConfig() is called. */
     public Settings() {
         useDisplayNames = true;
@@ -114,7 +126,11 @@ public class Settings {
         publicOperatorNames = true;
         discordInvite = "";
         skinProvider = "https://mc-heads.net/avatar/%s.png";
+        serverIconProvider = "https://api.mcsrvstat.us/icon/%s:%s";
         broadcastSkinName = "CONSOLE";
+        useChatExtensions = true;
+        enabledChatExtensions = Arrays.asList(ChatExtensions.values());
+        showServerIcon = true;
     }
 
     public Settings loadConfig() throws IOException {
