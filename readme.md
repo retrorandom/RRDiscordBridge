@@ -3,7 +3,7 @@ Discord bridge/relay plugin for both [old and new release versions](#tested-vers
 
 For config info, check out [this](https://github.com/DexrnZacAttack/RRDiscordBridge/wiki/Config).
 
-Download: https://modrinth.com/plugin/rrdiscordbridge
+Download: https://modrinth.com/plugin/rrdiscordbridge   
 Note: I am not a java developer, although I was able to find my way around this pretty easily.
 
 ## Features
