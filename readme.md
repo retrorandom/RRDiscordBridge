@@ -1,9 +1,10 @@
 # Retro-Release Discord Bridge
 Discord bridge/relay plugin for both [old and new release versions](#tested-versions) (r1.1-1.21.1) of Minecraft.   
 
-Note: I am not a java developer, although I was able to find my way around this pretty easily.
-
 For config info, check out [this](https://github.com/DexrnZacAttack/RRDiscordBridge/wiki/Config).
+
+Download: https://modrinth.com/plugin/rrdiscordbridge
+Note: I am not a java developer, although I was able to find my way around this pretty easily.
 
 ## Features
 - Message Relay
