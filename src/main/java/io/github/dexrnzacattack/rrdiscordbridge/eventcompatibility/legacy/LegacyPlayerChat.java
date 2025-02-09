@@ -1,6 +1,7 @@
 package io.github.dexrnzacattack.rrdiscordbridge.eventcompatibility.legacy;
 
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
+import io.github.dexrnzacattack.rrdiscordbridge.ReflectionHelper;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
 import org.bukkit.event.EventHandler;

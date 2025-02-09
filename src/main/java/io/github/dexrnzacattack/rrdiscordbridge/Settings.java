@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -15,11 +16,11 @@ public class Settings {
     /** The bot token */
     public String botToken;
     /** The channel ID for the bot to listen and send messages in for the relay */
-    public String channelId;
-    /** The token of the webhook that is in the same channel as the channel ID links to. */
-    public String webhookToken;
-    /** The ID of the webhook that is in the same channel as the channel ID links to. */
-    public long webhookId;
+    public String relayChannelId;
+    /** The channel ID for the bot to send console logs to. Also accepts operator commands */
+    public String consoleChannelId;
+    /** The channel ID for the bot to send and receive opchat messages in. Must have the extension enabled for it to work. */
+    public String opchatChannelId;
     /** The invite link to the relay's discord server (must be filled manually) */
     public String discordInvite;
     /** Use display names instead of discord usernames when relaying Discord messages to MC */
@@ -32,6 +33,7 @@ public class Settings {
     public boolean publicPlayerNames;
     /**
      * Allow operators to be highlighted when the /players command is used in Discord
+     * <p>
      * Also shown when /about is ran.
      */
     public boolean publicOperatorNames;
@@ -43,10 +45,8 @@ public class Settings {
     public boolean showServerIcon;
     /** Skin to use when /say or /dcbroadcast is used. */
     public String broadcastSkinName;
-    /** Use chat extensions */
-    public boolean useChatExtensions;
     /** Optional extensions for things like embeds for waypoints */
-    public List<ChatExtensions> enabledChatExtensions;
+    public List<String> enabledChatExtensions;
     /** Events that the bot will send to the relay channel */
     public List<Events> enabledEvents;
     /** Events that the bot will relay from the relay channel */
@@ -100,15 +100,12 @@ public class Settings {
         SLASH_COMMAND,
         /**
          * When a user app is used in the channel
+         * <p>
          * Activities are also considered user apps.
          */
         USER_APP,
         /** When a message is forwarded to the channel */
         FORWARDED_MESSAGE,
-    }
-
-    public enum ChatExtensions {
-        WAYPOINTS
     }
 
     /** Settings constructor, uses default values until Settings.loadConfig() is called. */
@@ -118,9 +115,9 @@ public class Settings {
         enabledEvents = Arrays.asList(Events.values());
         enabledDiscordEvents = Arrays.asList(DiscordEvents.values());
         maxMessageSize = 300;
-        channelId = "";
-        webhookId = 0;
-        webhookToken = "";
+        relayChannelId = "";
+        consoleChannelId = "";
+        opchatChannelId = "";
         botToken = "";
         publicPlayerNames = true;
         publicOperatorNames = true;
@@ -128,8 +125,8 @@ public class Settings {
         skinProvider = "https://mc-heads.net/avatar/%s.png";
         serverIconProvider = "https://api.mcsrvstat.us/icon/%s:%s";
         broadcastSkinName = "CONSOLE";
-        useChatExtensions = true;
-        enabledChatExtensions = Arrays.asList(ChatExtensions.values());
+        enabledChatExtensions = new ArrayList<String>();
+        enabledChatExtensions.add("Waypoints");
         showServerIcon = true;
     }
 

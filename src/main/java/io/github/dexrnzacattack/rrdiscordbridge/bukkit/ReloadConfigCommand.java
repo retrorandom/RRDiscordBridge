@@ -2,6 +2,7 @@ package io.github.dexrnzacattack.rrdiscordbridge.bukkit;
 
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
+import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensions;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -16,14 +17,13 @@ public class ReloadConfigCommand implements CommandExecutor  {
         try {
             DiscordBot.stop();
             RRDiscordBridge.settings = new Settings().loadConfig();
+            RRDiscordBridge.extensions = new ChatExtensions();
             DiscordBot.start();
-        } catch (IOException e) {
+        } catch (Exception e) {
             sender.sendMessage(String.format("Failed to reload the config: %s", e.getMessage()));
             return false;
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
         }
-        sender.sendMessage("RRDiscordBridge config reloaded.");
+        sender.sendMessage("§aRRDiscordBridge config reloaded.");
         return true;
     }
 }

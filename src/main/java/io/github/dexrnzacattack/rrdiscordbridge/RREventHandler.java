@@ -28,7 +28,12 @@ public class RREventHandler implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         DiscordBot.setPlayerCount();
-        DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_JOIN, event.getPlayer().getName(), String.format("%s joined the game.", event.getPlayer().getName()), null, Color.GREEN, null);
+        Player plr = event.getPlayer();
+        if (ReflectionHelper.doesMethodExist("org.bukkit.entity.Player", "hasPlayedBefore") && !plr.hasPlayedBefore()) {
+            DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_JOIN, plr.getName(), String.format("%s joined the game for the first time.", plr.getName()), null, Color.GREEN, null);
+        } else {
+            DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_JOIN, plr.getName(), String.format("%s joined the game.", event.getPlayer().getName()), null, Color.GREEN, null);
+        }
     }
 
     @EventHandler
@@ -39,13 +44,15 @@ public class RREventHandler implements Listener {
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
-        DiscordBot.setPlayerCount();
+        // bug, needs to run after the player has left.
+        // duct tape fix
+        DiscordBot.setPlayerCount(RRDiscordBridge.getOnlinePlayers().length - 1);
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_LEAVE, event.getPlayer().getName(), String.format("%s left the game.", event.getPlayer().getName()), null, REAL_ORANGE, null);
     }
 
     @EventHandler
     public void onPlayerKick(PlayerKickEvent event) {
-        DiscordBot.setPlayerCount();
+        DiscordBot.setPlayerCount(RRDiscordBridge.getOnlinePlayers().length - 1);
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_KICK, event.getPlayer().getName(), String.format("%s was kicked.", event.getPlayer().getName()), event.getReason(), REAL_ORANGE, null);
     }
 

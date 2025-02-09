@@ -1,5 +1,7 @@
 package io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.waypoints;
 
+import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.IChatExtension;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;

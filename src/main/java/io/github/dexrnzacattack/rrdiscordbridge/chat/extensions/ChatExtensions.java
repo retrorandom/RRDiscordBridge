@@ -1,81 +1,146 @@
 package io.github.dexrnzacattack.rrdiscordbridge.chat.extensions;
 
-import club.minnced.discord.webhook.send.*;
-import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
-import io.github.dexrnzacattack.rrdiscordbridge.Settings;
-import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.waypoints.JVMapWaypoints;
-import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.waypoints.Waypoint;
-import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.waypoints.XaerosWaypoints;
+import net.dv8tion.jda.api.entities.Message;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+
+import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.logger;
 import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.settings;
-import static io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot.webhookClient;
 
 public class ChatExtensions {
-    // TODO: actual api n stuff for this, not sure how this would work yet.
+    // TODO:
+    // settings for each extension
+    // external chat extensions
 
-    /**
-     * Tries to parse the message to check if any extensions support it.
-     * Returns the modified string, whether to send to mc, whether to send to discord.
+    /** List of all registered extensions */
+    public List<IChatExtension> extensions;
+    /** List of all enabled extensions */
+    public List<IChatExtension> enabledExtensions;
+
+    /** Runs onMCMessage in every enabled extension everytime a message is sent in-game
+     * @param str The message
+     * @param playerName The name of the player that sent the message
+     * @return The modified message, whether to send in Minecraft, and whether to send in Discord.
      */
-    public static Object[] tryParse(String str, String playerName) {
-        if (!RRDiscordBridge.settings.useChatExtensions)
-            return new Object[]{str, true, true};
+    public ChatExtensionResult tryParseMC(String str, String playerName) {
+        boolean shouldSendMc = true;
+        boolean shouldSendDiscord = true;
+        // what will be sent in the end if applicable
+        String toSend = str;
 
-        if (RRDiscordBridge.settings.enabledChatExtensions.contains(Settings.ChatExtensions.WAYPOINTS) && (XaerosWaypoints.isWaypoint(str) || (str.charAt(0) == '[' && str.charAt(str.length() - 1) == ']'))) {
-            boolean didEmbed = waypointEmbed(str, playerName);
-            return new Object[]{str, true, !didEmbed};
+        for (IChatExtension ext : enabledExtensions) {
+            ChatExtensionResult res = ext.onMCMessage(toSend, playerName);
+
+            // if any of these ever happen at all it should not send
+            if (!res.sendDiscord) shouldSendDiscord = false;
+            if (!res.sendMc) shouldSendMc = false;
+
+            // so this allows us to update the string as it passes through everything... is this a good idea? Dunno.
+            toSend = res.string;
         }
 
-        return new Object[]{str, true, true};
+        return new ChatExtensionResult(str, shouldSendMc, shouldSendDiscord);
     }
 
-    public static boolean waypointEmbed(String str, String playerName) {
-        try {
-            Waypoint waypoint;
-            String type = "a ";
+    /** Runs onDCMessage in every enabled extension everytime a message is sent in the server
+     * @param message The Discord message
+     * @return The modified message, and whether to send in Minecraft (if applicable).
+     */
+    public DiscordChatExtensionResult tryParseDiscord(Message message) {
+        boolean shouldSendMc = true;
 
-            AllowedMentions allowedMentions = new AllowedMentions()
-                    .withParseUsers(true)
-                    .withParseEveryone(false);
+        for (IChatExtension ext : enabledExtensions) {
+            DiscordChatExtensionResult res = ext.onDCMessage(message);
 
-            WebhookEmbedBuilder embedBuilder = new WebhookEmbedBuilder();
+            // if it happens to be false at all, don't send it.
+            if (!res.sendMc) shouldSendMc = false;
 
-            if (XaerosWaypoints.isWaypoint(str)) {
-                XaerosWaypoints xWaypoint = XaerosWaypoints.fromString(str);
-                waypoint = new Waypoint(xWaypoint.name, xWaypoint.x, xWaypoint.y, xWaypoint.z, xWaypoint.color, xWaypoint.group);
-                // ehhhhhhhh weird way of doing this but it works
-                type = "an Xaero's Minimap ";
-            } else if ((str.charAt(0) == '[' && str.charAt(str.length() - 1) == ']')) {
-                JVMapWaypoints jWaypoint = JVMapWaypoints.fromString(str);
-                waypoint = new Waypoint(jWaypoint.name, Integer.toString(jWaypoint.x), Integer.toString(jWaypoint.y), Integer.toString(jWaypoint.z), null, jWaypoint.dim);
-                type = "a JourneyMap/VoxelMap ";
-            } else {
-                throw new IllegalArgumentException("Not a waypoint!");
-            }
-
-            embedBuilder.setAuthor(new WebhookEmbed.EmbedAuthor(String.format("%s shared %swaypoint", playerName, type), null, null));
-            if (waypoint.color != null)
-                embedBuilder.setColor(waypoint.color.getRGB());
-            embedBuilder.setTitle(new WebhookEmbed.EmbedTitle(waypoint.name, null));
-            embedBuilder.addField(new WebhookEmbed.EmbedField(true, "X", waypoint.x));
-            embedBuilder.addField(new WebhookEmbed.EmbedField(true, "Y", waypoint.y));
-            embedBuilder.addField(new WebhookEmbed.EmbedField(true, "Z", waypoint.z));
-            embedBuilder.setFooter(new WebhookEmbed.EmbedFooter(waypoint.dimension, null));
-
-            WebhookEmbed embed = embedBuilder.build();
-
-            WebhookMessage wMessage = new WebhookMessageBuilder()
-                    .setUsername(playerName)
-                    .setAvatarUrl(String.format(settings.skinProvider, playerName))
-                    .addEmbeds(embed)
-                    .setAllowedMentions(allowedMentions)
-                    .build();
-
-
-            webhookClient.send(wMessage);
-            return true;
-        } catch (Exception ignored) {
-            return false;
+            message = res.message;
         }
+
+        return new DiscordChatExtensionResult(message, shouldSendMc);
+    }
+
+    /** Gets an extension by name
+     * @param extensionName The name of the extension that you want to find.
+     * @return The extension class if found, otherwise null.
+     */
+    public IChatExtension getExtension(String extensionName) {
+        return extensions.stream().filter(x -> x.getName().equals(extensionName)).findFirst().orElse(null);
+    }
+
+    /**
+     * @param extensionName The name of the extension that you want to check if is enabled.
+     * @return true if the extension is enabled
+     */
+    public boolean isEnabled(String extensionName) {
+        return enabledExtensions.stream().filter(x -> x.getName().equals(extensionName)).findFirst().orElse(null) != null;
+    }
+
+    /**
+     * @param ext The extension that you want to check if is enabled.
+     * @return true if the extension is enabled
+     */
+    public boolean isEnabled(IChatExtension ext) {
+        return enabledExtensions.stream().filter(x -> x.equals(ext)).findFirst().orElse(null) != null;
+    }
+
+    /** Registers an extension
+     * @param ext The extension class
+     * @param name The name of the extension
+     */
+    private void register(Class<? extends IChatExtension> ext, String name) {
+        try {
+            IChatExtension inst = ext.getConstructor(String.class).newInstance(name);
+            extensions.add(inst);
+            if (settings.enabledChatExtensions.contains(name)) {
+                enabledExtensions.add(inst);
+                inst.onEnable();
+            }
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, String.format("Failed to register chat extension %s: %s", name, e.toString()), e);
+        } finally {
+            logger.log(Level.INFO, String.format("Registered chat extension %s", name));
+        }
+    }
+
+    /** Unregisters an extension
+     * @param ext The extension instance
+     */
+    void unregister(IChatExtension ext) {
+        ext.onDisable();
+        enabledExtensions.remove(ext);
+        extensions.remove(ext);
+        logger.log(Level.INFO, String.format("Unregistered chat extension %s", ext.getName()));
+    }
+
+    /** Disables an extension
+     * @param ext The extension instance
+     */
+    public void disable(IChatExtension ext) {
+        ext.onDisable();
+        enabledExtensions.remove(ext);
+        settings.enabledChatExtensions.remove(ext.getName());
+        logger.log(Level.INFO, String.format("Disabled chat extension %s", ext.getName()));
+    }
+
+    /** Enables an extension
+     * @param ext The extension instance
+     */
+    public void enable(IChatExtension ext) {
+        ext.onEnable();
+        enabledExtensions.add(ext);
+        settings.enabledChatExtensions.add(ext.getName());
+        logger.log(Level.INFO, String.format("Enabled chat extension %s", ext.getName()));
+    }
+
+    public ChatExtensions() {
+        extensions = new ArrayList<>();
+        enabledExtensions = new ArrayList<>();
+
+        register(WaypointChatExtension.class, "Waypoints");
+        register(OpChatChatExtension.class, "OpChat");
     }
 }

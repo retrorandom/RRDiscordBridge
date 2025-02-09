@@ -7,7 +7,9 @@ import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
-import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensions;
+import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensionResult;
+import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.DiscordChatExtensionResult;
+import jdk.jfr.internal.Logger;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -28,12 +30,15 @@ import org.bukkit.event.player.PlayerChatEvent;
 import java.awt.*;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
-import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.settings;
+import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.*;
 
 public class DiscordBot extends ListenerAdapter {
     private static TextChannel channel;
     public static WebhookClient webhookClient;
+    public static Webhook webhook;
+    public static User self;
     public static JDA jda;
 
     /**
@@ -45,33 +50,40 @@ public class DiscordBot extends ListenerAdapter {
             throw new RuntimeException(String.format("Please set the bot token in %s", Settings.CONFIG_PATH));
         }
 
-        if (settings.channelId.isEmpty()) {
+        if (settings.relayChannelId.isEmpty()) {
             Bukkit.broadcastMessage("Failed to load RRDiscordBridge, please check the console logs.");
             throw new RuntimeException(String.format("Please set the channel id (of the relay channel) in %s", Settings.CONFIG_PATH));
         }
 
-        if (settings.webhookId == 0 || settings.webhookToken.isEmpty()) {
-            Bukkit.broadcastMessage("Failed to load RRDiscordBridge, please check the console logs.");
-            throw new RuntimeException(String.format("Please set the webhook token and ID of a webhook in the relay channel (you may have to create one) in %s", Settings.CONFIG_PATH) +
-                    "\nThe webhook ID is the numbers after /webhooks/ in the URL, and the token is a long string of seemingly random characters after the ID.");
-        }
-
         JDALogger.setFallbackLoggerEnabled(false);
-        WebhookClientBuilder builder = new WebhookClientBuilder(settings.webhookId, settings.webhookToken);
-        builder.setThreadFactory((job) -> {
-            Thread thread = new Thread(job);
-            thread.setName("io_github_dexrnzacattack_rrdiscordbridge_DiscordBot");
-            thread.setDaemon(true);
-            return thread;
-        });
-        builder.setWait(true);
-        webhookClient = builder.build();
 
         jda = JDABuilder.createDefault(settings.botToken)
                 .addEventListeners(new DiscordBot(), new PlayersCommand(), new AboutCommand())
                 .enableIntents(GatewayIntent.GUILD_MESSAGES, GatewayIntent.MESSAGE_CONTENT)
                 .build()
                 .awaitReady();
+
+        self = jda.getSelfUser();
+
+        List<Webhook> webhooks = channel.retrieveWebhooks().complete();
+
+        webhook = webhooks.stream().filter(
+                hook -> {
+                    User owner = hook.getOwnerAsUser();
+                    if (owner == null) return false;
+
+                    return owner.getId().equals(self.getId());
+                }).findFirst().orElseGet(() -> channel.createWebhook("RRMCBridge").complete());
+
+        WebhookClientBuilder builder = new WebhookClientBuilder(webhook.getUrl());
+        builder.setThreadFactory((job) -> {
+            Thread thread = new Thread(job);
+            thread.setName("RRDiscordBridgeBot");
+            thread.setDaemon(true);
+            return thread;
+        });
+        builder.setWait(true);
+        webhookClient = builder.build();
 
         setPlayerCount();
 
@@ -104,18 +116,35 @@ public class DiscordBot extends ListenerAdapter {
     }
 
     /**
+     * Sets the RPC status
+     */
+    public static void setPlayerCount(int i) {
+        Activity activity = Activity.playing(String.format("with %s %s", i, i != 1 ? "players" : "player"));
+        jda.getPresence().setActivity(activity);
+    }
+
+    /**
      * Runs when the bot is ready for use
      */
     @Override
     public void onReady(ReadyEvent event) {
-        channel = event.getJDA().getTextChannelById(settings.channelId);
+        channel = event.getJDA().getTextChannelById(settings.relayChannelId);
     }
 
     /** Runs when someone runs a command in the channel the bot is watching */
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        if (event.getChannel().getId().equals(settings.channelId) && !event.getInteraction().getMember().getId().equals(event.getJDA().getSelfUser().getId()) && !event.getInteraction().getMember().getId().equals(Long.toString(settings.webhookId))) {
+        if (event.getInteraction().getMember() == null)
+            return;
+
+        String channel = event.getChannel().getId();
+        String sender = event.getInteraction().getMember().getId();
+
+        if (channel.equals(settings.relayChannelId)
+                && !sender.equals(self.getId())
+                && !sender.equals(webhook.getId())) {
+
             String author = settings.useDisplayNames ? event.getUser().getGlobalName() : event.getUser().getName();
-            Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s ran Discord command \"/%s\".", author, event.getFullCommandName()));
+            BCMessage(String.format("§d[Discord] §e%s ran Discord command \"/%s\".", author, event.getFullCommandName()));
         }
     }
 
@@ -148,11 +177,20 @@ public class DiscordBot extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         // this method kinda sucks
-        if (event.getChannel().getId().equals(settings.channelId) && !event.getAuthor().getId().equals(event.getJDA().getSelfUser().getId()) && !event.getAuthor().getId().equals(Long.toString(settings.webhookId))) {
-            // so basically traits are things about the message, for example, if a message got trimmed for being too long, it will have (T) added to the message inside MC.
-            // if a message is both trimmed and has attachments as well as is replying to something, it will look like (2, T, R)
-            List<String> traits = new java.util.ArrayList<>(Collections.emptyList());
-            Message message = event.getMessage();
+        String channel = event.getChannel().getId();
+        String author2 = event.getAuthor().getId();
+
+        // so basically traits are things about the message, for example, if a message got trimmed for being too long, it will have (T) added to the message inside MC.
+        // if a message is both trimmed and has attachments as well as is replying to something, it will look like (2, T, R)
+        List<String> traits = new java.util.ArrayList<>(Collections.emptyList());
+        Message message = event.getMessage();
+        DiscordChatExtensionResult ext = extensions.tryParseDiscord(message);
+        message = ext.message;
+
+        if (!ext.sendMc)
+            return;
+
+        if (channel.equals(settings.relayChannelId) && !author2.equals(self.getId()) && !author2.equals(webhook.getId())) {
             String author;
             if (message.getMember() != null) author = getName(message.getMember());
             else author = getName(message.getAuthor());
@@ -185,19 +223,19 @@ public class DiscordBot extends ListenerAdapter {
             switch (message.getType()) {
                 case GUILD_MEMBER_JOIN:
                     if (settings.enabledDiscordEvents.contains(Settings.DiscordEvents.USER_JOIN))
-                        Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s has joined the Discord server.", author));
+                        BCMessage(String.format("§d[Discord] §e%s has joined the Discord server.", author));
                     return;
                 case GUILD_MEMBER_BOOST:
                     if (settings.enabledDiscordEvents.contains(Settings.DiscordEvents.USER_BOOST))
-                        Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s has boosted the Discord server.", author));
+                        BCMessage(String.format("§d[Discord] §e%s has boosted the Discord server.", author));
                     return;
                 case THREAD_CREATED:
                     if (settings.enabledDiscordEvents.contains(Settings.DiscordEvents.THREAD_CREATION))
-                        Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s has created the thread \"%s\".", author, messageTrimmed));
+                        BCMessage(String.format("§d[Discord] §e%s has created the thread \"%s\".", author, messageTrimmed));
                     return;
                 case CHANNEL_PINNED_ADD:
                     if (settings.enabledDiscordEvents.contains(Settings.DiscordEvents.MESSAGE_PIN))
-                        Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s has pinned a message to the channel.", author));
+                        BCMessage(String.format("§d[Discord] §e%s has pinned a message to the channel.", author));
                     return;
                 case POLL_RESULT:
                     if (!settings.enabledDiscordEvents.contains(Settings.DiscordEvents.POLL_ENDED))
@@ -209,9 +247,9 @@ public class DiscordBot extends ListenerAdapter {
 
                     // the actual poll message
                     Message poll = pollChannel.retrieveMessageById(message.getMessageReference().getMessageId()).complete();
-                    Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s's poll \"%s\" has ended.\nResults:", author, poll.getPoll().getQuestion().getText()));
+                    BCMessage(String.format("§d[Discord] §e%s's poll \"%s\" has ended.\nResults:", author, poll.getPoll().getQuestion().getText()));
                     poll.getPoll().getAnswers().forEach(answer -> {
-                        Bukkit.getServer().broadcastMessage(String.format("§3%s: §b%s", answer.getText(), answer.getVotes()));
+                        BCMessage(String.format("§3%s: §b%s", answer.getText(), answer.getVotes()));
                     });
                     return;
                 case CONTEXT_COMMAND:
@@ -221,7 +259,7 @@ public class DiscordBot extends ListenerAdapter {
                     if (message.getInteraction() == null) return;
 
                     // those weird activity messages and user crapps
-                    Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s used app \"%s\".", message.getInteraction().getUser().getGlobalName(), message.getAuthor().getName()));
+                    BCMessage(String.format("§d[Discord] §e%s used app \"%s\".", message.getInteraction().getUser().getGlobalName(), message.getAuthor().getName()));
                     return;
             }
 
@@ -230,7 +268,7 @@ public class DiscordBot extends ListenerAdapter {
                 if (!settings.enabledDiscordEvents.contains(Settings.DiscordEvents.FORWARDED_MESSAGE))
                     return;
 
-                Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s forwarded a message.", author));
+                BCMessage(String.format("§d[Discord] §e%s forwarded a message.", author));
                 return;
             }
 
@@ -239,7 +277,7 @@ public class DiscordBot extends ListenerAdapter {
                 if (!settings.enabledDiscordEvents.contains(Settings.DiscordEvents.POLL_CREATION))
                     return;
 
-                Bukkit.getServer().broadcastMessage(String.format("§d[Discord] §e%s has created a poll \"%s\".", author, message.getPoll().getQuestion().getText()));
+                BCMessage(String.format("§d[Discord] §e%s has created a poll \"%s\".", author, message.getPoll().getQuestion().getText()));
                 return;
             }
 
@@ -259,7 +297,7 @@ public class DiscordBot extends ListenerAdapter {
                 event.getMessage().addReaction(Emoji.fromUnicode("\uD83D\uDCCF")).queue();
             }
 
-            Bukkit.getServer().broadcastMessage(
+            BCMessage(
                     String.format("§d[Discord]%s%s §e%s§f: %s%s",
                             ((replyingTo != null && !replyAuthor.isEmpty()) ? String.format(" §b(RE: §e%s§b)", replyAuthor) : ""),
                             (!traits.isEmpty()
@@ -273,6 +311,13 @@ public class DiscordBot extends ListenerAdapter {
         }
     }
 
+    // maybe extend the broadcast shit and override broadcastMessage directly?
+    /** Literally only exists to log discord messages into the console */
+    public int BCMessage(String message) {
+        logger.log(Level.INFO, message);
+        return Bukkit.getServer().broadcastMessage(message);
+    }
+
     /**
      * Sends a message using a webhook that uses the player's name and skin.
      * For bukkit 1.2.5 and lower.
@@ -283,10 +328,13 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
             return;
 
-        Object[] chatExt = ChatExtensions.tryParse(event.getMessage(), event.getPlayer().getName());
-        String msg = (String)chatExt[0];
+        ChatExtensionResult chatExt = extensions.tryParseMC(event.getMessage(), event.getPlayer().getName());
+        String msg = chatExt.string;
 
-        if (!(boolean) chatExt[2])
+        if (!chatExt.sendMc)
+            event.setCancelled(true);
+
+        if (!chatExt.sendDiscord)
             return;
 
         // disallows @everyone lol
@@ -312,10 +360,13 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
             return;
 
-        Object[] chatExt = ChatExtensions.tryParse(event.getMessage(), event.getPlayer().getName());
-        String msg = (String)chatExt[0];
+        ChatExtensionResult chatExt = extensions.tryParseMC(event.getMessage(), event.getPlayer().getName());
+        String msg = chatExt.string;
 
-        if (!(boolean) chatExt[2])
+        if (!chatExt.sendMc)
+            event.setCancelled(true);
+
+        if (!chatExt.sendDiscord)
             return;
 
         // disallows @everyone lol
@@ -355,6 +406,30 @@ public class DiscordBot extends ListenerAdapter {
         webhookClient.send(wMessage);
     }
 
+    /**
+     * Sends a message using a provided webhook that uses the player's name and skin.
+     *
+     * @param playerName The player name
+     * @param message The message
+     * @param wc The webhook
+     */
+    public static void sendPlayerMessage(String playerName, String message, WebhookClient wc) {
+        if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
+            return;
+
+        AllowedMentions allowedMentions = new AllowedMentions()
+                .withParseUsers(true)
+                .withParseEveryone(false);
+
+        WebhookMessage wMessage = new WebhookMessageBuilder()
+                .setUsername(playerName)
+                .setAvatarUrl(String.format(settings.skinProvider, playerName))
+                .setContent(message)
+                .setAllowedMentions(allowedMentions)
+                .build();
+        wc.send(wMessage);
+    }
+
 
     /**
      * Sends a message using a webhook that uses the player's name and skin.
@@ -367,10 +442,10 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(eventType))
             return;
 
-        Object[] chatExt = ChatExtensions.tryParse(message, playerName);
-        String msg = (String)chatExt[0];
+        ChatExtensionResult chatExt = extensions.tryParseMC(message, playerName);
+        String msg = chatExt.string;
 
-        if (!(boolean) chatExt[2])
+        if (!(boolean) chatExt.sendDiscord)
             return;
 
         AllowedMentions allowedMentions = new AllowedMentions()
@@ -422,10 +497,10 @@ public class DiscordBot extends ListenerAdapter {
         if (!settings.enabledEvents.contains(eventType))
             return;
 
-        Object[] chatExt = ChatExtensions.tryParse(message, playerName);
-        String msg = (String)chatExt[0];
+        ChatExtensionResult chatExt = extensions.tryParseMC(message, playerName);
+        String msg = chatExt.string;
 
-        if (!(boolean) chatExt[2])
+        if (!(boolean) chatExt.sendDiscord)
             return;
 
         AllowedMentions allowedMentions = new AllowedMentions()
