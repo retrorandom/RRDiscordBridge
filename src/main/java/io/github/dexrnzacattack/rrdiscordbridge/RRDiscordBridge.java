@@ -2,7 +2,6 @@ package io.github.dexrnzacattack.rrdiscordbridge;
 
 import io.github.dexrnzacattack.rrdiscordbridge.bukkit.ChatExtensionsCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensions;
-import io.github.dexrnzacattack.rrdiscordbridge.discord.AboutCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.eventcompatibility.legacy.LegacyPlayerChat;
 import io.github.dexrnzacattack.rrdiscordbridge.eventcompatibility.legacy.LegacyPlayerDeath;
 import io.github.dexrnzacattack.rrdiscordbridge.eventcompatibility.legacy.PLegacyPlayerDeath;
@@ -13,16 +12,12 @@ import io.github.dexrnzacattack.rrdiscordbridge.bukkit.ReloadConfigCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Listener;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.awt.*;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -83,7 +78,8 @@ public final class RRDiscordBridge extends JavaPlugin {
             pluginManager.registerEvents(new PlayerDeath(), this);
         } else if (PLegacyPlayerDeath.isSupported) {
             // specifically for poseidon
-            logger.warning("Project Poseidon's PlayerDeathEvent is not handled yet, Death messages will not be sent.");
+            logger.info("Registering Project Poseidon PlayerDeath handler.");
+            pluginManager.registerEvents(new PLegacyPlayerDeath(), this);
         } else if (LegacyPlayerDeath.isSupported) {
             logger.info("Registering legacy PlayerDeath handler.");
             pluginManager.registerEvents(new LegacyPlayerDeath(), this);

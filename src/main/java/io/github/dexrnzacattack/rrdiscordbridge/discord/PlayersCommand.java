@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 /**
  * Sends info about how many players are online and their names.

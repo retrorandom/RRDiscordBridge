@@ -9,7 +9,6 @@ import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensionResult;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.DiscordChatExtensionResult;
-import jdk.jfr.internal.Logger;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
