@@ -4,12 +4,9 @@ import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensions;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-
-import java.io.IOException;
 
 public class ReloadConfigCommand implements CommandExecutor  {
     @Override

@@ -19,9 +19,8 @@ import static io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot.*;
 // opchatchatchatchatchatchatextension
 public class OpChatChatExtension implements IChatExtension {
     private final String name;
-    public static WebhookClient opcWebhookClient;
-    public static Webhook opcWebhook;
-    public static TextChannel opcChannel;
+    public WebhookClient opcWebhookClient;
+    public Webhook opcWebhook;
 
     @Override
     public String getName() {
@@ -35,44 +34,51 @@ public class OpChatChatExtension implements IChatExtension {
 
     @Override
     public void onEnable() {
+        if (settings.opchatChannelId.isEmpty()) {
+            logger.warning("OPChat channel ID was not specified. Disabling extension.");
+            onDisable();
+            return;
+        }
 
+        TextChannel opcChannel = jda.getTextChannelById(settings.opchatChannelId);
+        if (opcChannel == null) {
+            logger.log(Level.WARNING, "Failed to find OPChat channel with ID " + settings.opchatChannelId);
+            return;
+        }
+
+        List<Webhook> webhooks = opcChannel.retrieveWebhooks().complete();
+
+        opcWebhook = webhooks.stream().filter(
+                hook -> {
+                    User owner = hook.getOwnerAsUser();
+                    if (owner == null) return false;
+
+                    return owner.getId().equals(jda.getSelfUser().getId());
+                }).findFirst().orElseGet(() -> opcChannel.createWebhook("RRMCBridgeOpChat").complete());
+
+        WebhookClientBuilder opcBuilder = new WebhookClientBuilder(opcWebhook.getUrl());
+        opcBuilder.setThreadFactory((job) -> {
+            Thread thread = new Thread(job);
+            thread.setName("RRDiscordBridgeBotOpChat");
+            thread.setDaemon(true);
+            return thread;
+        });
+        opcBuilder.setWait(true);
+        opcWebhookClient = opcBuilder.build();
     }
 
     @Override
     public void onDisable() {
+        opcWebhook = null;
 
+        if (opcWebhookClient != null) {
+            opcWebhookClient.close();
+            opcWebhookClient = null;
+        }
     }
 
     public OpChatChatExtension(String name) {
         this.name = name;
-
-        if (!settings.opchatChannelId.isEmpty()) {
-            opcChannel = jda.getTextChannelById(settings.opchatChannelId);
-            if (opcChannel == null) {
-                logger.log(Level.WARNING, "Failed to find opchat channel with ID " + settings.opchatChannelId);
-                return;
-            }
-
-            List<Webhook> webhooks = opcChannel.retrieveWebhooks().complete();
-
-            opcWebhook = webhooks.stream().filter(
-                    hook -> {
-                        User owner = hook.getOwnerAsUser();
-                        if (owner == null) return false;
-
-                        return owner.getId().equals(jda.getSelfUser().getId());
-                    }).findFirst().orElseGet(() -> opcChannel.createWebhook("RRMCBridgeOpChat").complete());
-
-            WebhookClientBuilder opcBuilder = new WebhookClientBuilder(opcWebhook.getUrl());
-            opcBuilder.setThreadFactory((job) -> {
-                Thread thread = new Thread(job);
-                thread.setName("RRDiscordBridgeBotOpChat");
-                thread.setDaemon(true);
-                return thread;
-            });
-            opcBuilder.setWait(true);
-            opcWebhookClient = opcBuilder.build();
-        }
     }
 
     @Override
@@ -82,7 +88,7 @@ public class OpChatChatExtension implements IChatExtension {
 
         message = message.trim().substring(2).trim();
 
-        // incase the player just sends "##" or "## "
+        // in-case the player just sends "##" or "## "
         if (message.isEmpty())
             return new ChatExtensionResult(message, true, true);
 

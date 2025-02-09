@@ -3,6 +3,7 @@ package io.github.dexrnzacattack.rrdiscordbridge.eventcompatibility.modern;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
@@ -28,7 +29,7 @@ public class PlayerDeath implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_DEATH, event.getEntity().getName(), event.getDeathMessage(), null, Color.RED, null);
     }
