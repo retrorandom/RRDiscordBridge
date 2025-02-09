@@ -36,6 +36,7 @@ public class OpChatChatExtension implements IChatExtension {
     public void onEnable() {
         if (settings.opchatChannelId.isEmpty()) {
             logger.warning("OPChat channel ID was not specified. Disabling extension.");
+            extensions.enabledExtensions.remove(this);
             onDisable();
             return;
         }
