@@ -43,7 +43,6 @@ Note: I am not a java developer, although I was able to find my way around this 
 ## Tested versions
 - [X] b1.7.3 (using [Project Poseidon](https://github.com/retromcorg/Project-Poseidon))
   - [LegacyPlayerChat.java](src/main/java/io/github/dexrnzacattack/rrdiscordbridge/eventcompatibility/legacy/LegacyPlayerChat.java)
-  - No death messages (yet)
   - No MOTD
 - [ ] b1.8.1
 - [ ] 1.0   
