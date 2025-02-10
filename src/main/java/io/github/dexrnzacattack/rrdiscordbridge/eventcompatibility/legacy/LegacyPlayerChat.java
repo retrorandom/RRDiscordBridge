@@ -9,9 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChatEvent;
 
 public class LegacyPlayerChat implements Listener {
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerChatLegacy(PlayerChatEvent event) {
         if (RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
-            DiscordBot.sendPlayerMessageLegacy(event);
+            DiscordBot.sendPlayerMessage(event.getPlayer().getName(), event.getMessage(), event);
     }
 }

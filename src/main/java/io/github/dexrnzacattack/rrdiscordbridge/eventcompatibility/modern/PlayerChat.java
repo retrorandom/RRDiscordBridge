@@ -12,10 +12,10 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 public class PlayerChat implements Listener {
     public static boolean isSupported = ReflectionHelper.doesClassExist("org.bukkit.event.player.AsyncPlayerChatEvent");
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         if (RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT)) {
-            DiscordBot.sendPlayerMessage(event);
+            DiscordBot.sendPlayerMessage(event.getPlayer().getName(), event.getMessage(), event);
         }
     }
 }
