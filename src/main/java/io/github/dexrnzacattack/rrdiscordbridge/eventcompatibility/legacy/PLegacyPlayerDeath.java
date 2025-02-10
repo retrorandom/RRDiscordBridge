@@ -14,7 +14,7 @@ import java.awt.*;
 public class PLegacyPlayerDeath implements Listener {
     public static boolean isSupported = ReflectionHelper.doesClassExist("com.legacyminecraft.poseidon.event.PlayerDeathEvent");
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerDeathLegacy(PlayerDeathEvent event) {
         String message = event.getDeathMessage();
 

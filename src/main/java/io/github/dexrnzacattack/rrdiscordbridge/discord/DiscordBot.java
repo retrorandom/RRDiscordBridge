@@ -5,6 +5,7 @@ import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import io.github.dexrnzacattack.rrdiscordbridge.ChatHelper;
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensionResult;
@@ -23,8 +24,7 @@ import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.bukkit.Bukkit;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.Cancellable;
 
 import java.awt.*;
 import java.util.Collections;
@@ -314,20 +314,20 @@ public class DiscordBot extends ListenerAdapter {
     /** Literally only exists to log discord messages into the console */
     public int BCMessage(String message) {
         logger.log(Level.INFO, message);
+        message = ChatHelper.filterText(message, true, '?');
         return Bukkit.getServer().broadcastMessage(message);
     }
 
     /**
      * Sends a message using a webhook that uses the player's name and skin.
-     * For bukkit 1.2.5 and lower.
      *
-     * @param event PlayerChatEvent which can be obtained from onPlayerChat
+     * @param event An event which implements {@link Cancellable} which can be obtained from onPlayerChat
      */
-    public static void sendPlayerMessageLegacy(PlayerChatEvent event) {
+    public static void sendPlayerMessage(String playerName, String message, Cancellable event) {
         if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
             return;
 
-        ChatExtensionResult chatExt = extensions.tryParseMC(event.getMessage(), event.getPlayer().getName());
+        ChatExtensionResult chatExt = extensions.tryParseMC(message, playerName);
         String msg = chatExt.string;
 
         if (!chatExt.sendMc)
@@ -341,45 +341,13 @@ public class DiscordBot extends ListenerAdapter {
                 .withParseUsers(true)
                 .withParseEveryone(false);
 
-        WebhookMessage message = new WebhookMessageBuilder()
-                .setUsername(event.getPlayer().getName())
-                .setAvatarUrl(String.format(settings.skinProvider, event.getPlayer().getName()))
+        WebhookMessage messageSend = new WebhookMessageBuilder()
+                .setUsername(playerName)
+                .setAvatarUrl(String.format(settings.skinProvider, playerName))
                 .setContent(msg)
                 .setAllowedMentions(allowedMentions)
                 .build();
-        webhookClient.send(message);
-    }
-
-    /**
-     * Sends a message using a webhook that uses the player's name and skin.
-     *
-     * @param event AsyncPlayerChatEvent which can be obtained from onPlayerChat
-     */
-    public static void sendPlayerMessage(AsyncPlayerChatEvent event) {
-        if (!settings.enabledEvents.contains(Settings.Events.PLAYER_CHAT))
-            return;
-
-        ChatExtensionResult chatExt = extensions.tryParseMC(event.getMessage(), event.getPlayer().getName());
-        String msg = chatExt.string;
-
-        if (!chatExt.sendMc)
-            event.setCancelled(true);
-
-        if (!chatExt.sendDiscord)
-            return;
-
-        // disallows @everyone lol
-        AllowedMentions allowedMentions = new AllowedMentions()
-                .withParseUsers(true)
-                .withParseEveryone(false);
-
-        WebhookMessage message = new WebhookMessageBuilder()
-                .setUsername(event.getPlayer().getName())
-                .setAvatarUrl(String.format(settings.skinProvider, event.getPlayer().getName()))
-                .setContent(msg)
-                .setAllowedMentions(allowedMentions)
-                .build();
-        webhookClient.send(message);
+        webhookClient.send(messageSend);
     }
 
     /**

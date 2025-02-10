@@ -29,7 +29,7 @@ public class PlayerDeath implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_DEATH, event.getEntity().getName(), event.getDeathMessage(), null, Color.RED, null);
     }

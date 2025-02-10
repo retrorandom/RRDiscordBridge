@@ -44,6 +44,8 @@ public class OpChatChatExtension implements IChatExtension {
         TextChannel opcChannel = jda.getTextChannelById(settings.opchatChannelId);
         if (opcChannel == null) {
             logger.log(Level.WARNING, "Failed to find OPChat channel with ID " + settings.opchatChannelId);
+            extensions.enabledExtensions.remove(this);
+            onDisable();
             return;
         }
 

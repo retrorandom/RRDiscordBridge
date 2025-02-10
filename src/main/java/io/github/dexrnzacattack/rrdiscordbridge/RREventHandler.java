@@ -14,7 +14,7 @@ import static io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge.REAL_ORAN
 
 public class RREventHandler implements Listener {
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         // /me
         if (event.getMessage().toLowerCase().startsWith("/me ") && event.getMessage().length() > 4 && RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.ME_COMMAND))
@@ -25,7 +25,7 @@ public class RREventHandler implements Listener {
             DiscordBot.sendPlayerMessage(Settings.Events.SAY_BROADCAST, "Server (Broadcast)", RRDiscordBridge.settings.broadcastSkinName, event.getMessage().substring(5));
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         DiscordBot.setPlayerCount();
         Player plr = event.getPlayer();
@@ -36,13 +36,13 @@ public class RREventHandler implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onServerCommand(ServerCommandEvent event) {
         if (event.getCommand().toLowerCase().startsWith("say ") && event.getCommand().length() > 4 && RRDiscordBridge.settings.enabledEvents.contains(Settings.Events.SAY_BROADCAST))
             DiscordBot.sendPlayerMessage(Settings.Events.SAY_BROADCAST, "Server (Broadcast)", RRDiscordBridge.settings.broadcastSkinName, event.getCommand().substring(4));
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
         // bug, needs to run after the player has left.
         // duct tape fix
@@ -50,7 +50,7 @@ public class RREventHandler implements Listener {
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_LEAVE, event.getPlayer().getName(), String.format("%s left the game.", event.getPlayer().getName()), null, REAL_ORANGE, null);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerKick(PlayerKickEvent event) {
         DiscordBot.setPlayerCount(RRDiscordBridge.getOnlinePlayers().length - 1);
         DiscordBot.sendPlayerEvent(Settings.Events.PLAYER_KICK, event.getPlayer().getName(), String.format("%s was kicked.", event.getPlayer().getName()), event.getReason(), REAL_ORANGE, null);

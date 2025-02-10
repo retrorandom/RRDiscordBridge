@@ -38,52 +38,52 @@ public class AboutCommand extends ListenerAdapter {
         if (!event.getName().equals("about"))
             return;
 
-            EmbedBuilder builder = new EmbedBuilder()
-                    .setTitle("About");
+        EmbedBuilder builder = new EmbedBuilder()
+                .setTitle("About");
 
-            if (ReflectionHelper.isServerIconSupported && !Bukkit.getIp().isEmpty() && RRDiscordBridge.settings.showServerIcon)
-                builder.setThumbnail(String.format(RRDiscordBridge.settings.serverIconProvider, Bukkit.getIp(), Bukkit.getPort()));
+        if (ReflectionHelper.isServerIconSupported && !Bukkit.getIp().isEmpty() && RRDiscordBridge.settings.showServerIcon)
+            builder.setThumbnail(String.format(RRDiscordBridge.settings.serverIconProvider, Bukkit.getIp(), Bukkit.getPort()));
 
-            if (ReflectionHelper.isServerNameSupported)
-                builder.addField("Name", Bukkit.getServer().getServerName(), true);
+        if (ReflectionHelper.isServerNameSupported)
+            builder.addField("Name", Bukkit.getServer().getServerName(), true);
 
-            // doesn't work in 1.1-
-            if (ReflectionHelper.isMotdSupported)
-                builder.addField("MOTD", Bukkit.getServer().getMotd(), true);
+        // doesn't work in 1.1-
+        if (ReflectionHelper.isMotdSupported)
+            builder.addField("MOTD", Bukkit.getServer().getMotd(), true);
 
-            builder.addField("Version", Bukkit.getServer().getVersion(), true);
+        builder.addField("Version", Bukkit.getServer().getVersion(), true);
 
-            if (RRDiscordBridge.settings.publicOperatorNames) {
-                if (ReflectionHelper.isServerOperatorsSupported) {
-                    Set<OfflinePlayer> ops = Bukkit.getServer().getOperators();
-                    builder.addField("Operators", (!ops.isEmpty()
-                            ? " - " + ops.stream()
-                            .map(OfflinePlayer::getName)
-                            .collect(Collectors.joining("\n - "))
-                            : "No operators"), false);
-                } else {
-                    String dir = new File(".").getAbsolutePath();
-                    Path opsTxt = Paths.get(dir, "ops.txt");
-                    List<String> ops = null;
-                    try {
-                        if (opsTxt.toFile().exists()) {
-                            ops = Files.readAllLines(opsTxt.toAbsolutePath());
-                            builder.addField("Operators", (!ops.isEmpty()
-                                    ? " - " + String.join("\n - ", ops)
-                                    : "No operators"), false);
-                        }
-
-                    } catch (IOException e) {
-                        logger.log(Level.WARNING, String.format("Couldn't get the OPs list at %s", opsTxt.toAbsolutePath()), e);
+        if (RRDiscordBridge.settings.publicOperatorNames) {
+            if (ReflectionHelper.isServerOperatorsSupported) {
+                Set<OfflinePlayer> ops = Bukkit.getServer().getOperators();
+                builder.addField("Operators", (!ops.isEmpty()
+                        ? " - " + ops.stream()
+                        .map(OfflinePlayer::getName)
+                        .collect(Collectors.joining("\n - "))
+                        : "No operators"), false);
+            } else {
+                String dir = new File(".").getAbsolutePath();
+                Path opsTxt = Paths.get(dir, "ops.txt");
+                List<String> ops = null;
+                try {
+                    if (opsTxt.toFile().exists()) {
+                        ops = Files.readAllLines(opsTxt.toAbsolutePath());
+                        builder.addField("Operators", (!ops.isEmpty()
+                                ? " - " + String.join("\n - ", ops)
+                                : "No operators"), false);
                     }
+
+                } catch (IOException e) {
+                    logger.log(Level.WARNING, String.format("Couldn't get the OPs list at %s", opsTxt.toAbsolutePath()), e);
                 }
             }
+        }
 
-            builder.addField("Uptime", getUptime(), false);
+        builder.addField("Uptime", getUptime(), false);
 
-            builder.setFooter(String.format("RRDiscordBridge v%s running on %s", RRDiscordBridge.version, Bukkit.getName()));
+        builder.setFooter(String.format("RRDiscordBridge v%s running on %s", RRDiscordBridge.version, Bukkit.getName()));
 
-            MessageEmbed embed = builder.build();
-            event.replyEmbeds(embed).queue();
+        MessageEmbed embed = builder.build();
+        event.replyEmbeds(embed).queue();
     }
 }

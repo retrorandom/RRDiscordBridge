@@ -14,7 +14,7 @@ import java.awt.*;
 public class LegacyPlayerDeath implements Listener {
     public static boolean isSupported = ReflectionHelper.doesClassExist("org.bukkit.event.entity.PlayerDeathEvent");
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler
     public void onPlayerDeathLegacy(PlayerDeathEvent event) {
         DiscordBot.sendEvent(Settings.Events.PLAYER_DEATH, new MessageEmbed.AuthorInfo(event.getDeathMessage(), null, null, null), null,  Color.RED, null);
     }
