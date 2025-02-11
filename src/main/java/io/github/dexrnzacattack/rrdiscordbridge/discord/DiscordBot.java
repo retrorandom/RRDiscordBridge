@@ -5,7 +5,7 @@ import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
-import io.github.dexrnzacattack.rrdiscordbridge.ChatHelper;
+import io.github.dexrnzacattack.rrdiscordbridge.helpers.ChatHelper;
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
 import io.github.dexrnzacattack.rrdiscordbridge.Settings;
 import io.github.dexrnzacattack.rrdiscordbridge.chat.extensions.ChatExtensionResult;
@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.internal.utils.JDALogger;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
@@ -564,7 +565,54 @@ public class DiscordBot extends ListenerAdapter {
         if (channel != null) {
             channel.sendMessage(message).queue();
         } else {
-            System.err.println("bot isn't ready!");
+            logger.warning("bot isn't ready!");
+        }
+    }
+
+    /**
+     * Sends a message to a channel
+     *
+     * @param message The message
+     * @param channel The channel to send the message in
+     */
+    public static Message sendMessage(String message, TextChannel channel) {
+        if (channel != null) {
+            MessageCreateAction action = channel.sendMessage(message);
+            return action.complete();
+        } else {
+            logger.warning("Cannot send because provided channel is null.");
+        }
+        return null;
+    }
+
+    /**
+     * Sends a message to a channel
+     *
+     * @param message The message
+     * @param channel The channel to send the message in
+     */
+    public static Message sendMessage(String message, String channel) {
+        TextChannel txtChannel = jda.getTextChannelById(channel);
+        if (txtChannel != null) {
+            MessageCreateAction action = txtChannel.sendMessage(message);
+            return action.complete();
+        } else {
+            logger.warning("Could not find channel " + channel);
+        }
+        return null;
+    }
+
+    /**
+     * Edits an existing message
+     *
+     * @param newMessage The new message content
+     * @param msg The message you want to edit
+     */
+    public static void editMessage(String newMessage, Message msg) {
+        if (msg != null) {
+            msg.editMessage(newMessage).queue();
+        } else {
+            logger.warning("Cannot edit because provided messages is null.");
         }
     }
 }

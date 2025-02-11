@@ -1,4 +1,4 @@
-package io.github.dexrnzacattack.rrdiscordbridge;
+package io.github.dexrnzacattack.rrdiscordbridge.helpers;
 
 import org.bukkit.Bukkit;
 

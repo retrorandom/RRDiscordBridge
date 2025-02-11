@@ -10,6 +10,7 @@ import io.github.dexrnzacattack.rrdiscordbridge.bukkit.DiscordCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.bukkit.FancyBroadcastCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.bukkit.ReloadConfigCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
+import io.github.dexrnzacattack.rrdiscordbridge.helpers.ReflectionHelper;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -31,32 +32,54 @@ public final class RRDiscordBridge extends JavaPlugin {
     public static Logger logger;
     public static PluginManager pluginManager;
     public static ChatExtensions extensions;
+    public static ConsoleLogUtil logHandler;
 
     @Override
     public void onEnable() {
+        // setup the logger
         logger = getServer().getLogger();
+
+        // set version shits
         version = getDescription().getVersion();
         try {
+            // load settings
             settings = new Settings().loadConfig();
         } catch (IOException e) {
+            // just throw if caught some weird error
             throw new RuntimeException(e);
         } finally {
+            // plugin manager
             pluginManager = getServer().getPluginManager();
+            // get server start time (for runtime stats)
             serverStartTime = System.currentTimeMillis();
             try {
+                // start the discord bot
                 DiscordBot.start();
+                // register console channel handler thing (logs all console messages to discord if set up)
+                if (!settings.consoleChannelId.isEmpty()) {
+                    logger.info("Registering console channel handler");
+                    logHandler = new ConsoleLogUtil(settings.consoleChannelId);
+                    // this only adds the handler to all plugin loggers on paper.........
+                    // doesn't work on older bukkit versions I think
+                    // Logger.getLogger("").addHandler(logHandler);
+
+                    // this only adds the handler for the plugin's logger on paper (untested with newer bukkit)
+                     logger.addHandler(logHandler);
+                }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            // setup chat extensions
             extensions = new ChatExtensions();
         }
+        // register all the in-game commands
         getCommand("reloadrdbconfig").setExecutor(new ReloadConfigCommand());
         getCommand("dcbroadcast").setExecutor(new FancyBroadcastCommand());
         getCommand("discord").setExecutor(new DiscordCommand());
         // cernel extension
         getCommand("cext").setExecutor(new ChatExtensionsCommand());
 
-
+        // support checking
         if (!ReflectionHelper.isMotdSupported) logger.warning("MOTD is not supported on this version. There will be no MOTD when /about is used.");
 
         if (!ReflectionHelper.isServerIconSupported) logger.warning("server-icon.png is not supported on this version. There will be no icon when /about is used.");
@@ -65,8 +88,10 @@ public final class RRDiscordBridge extends JavaPlugin {
 
         if (!ReflectionHelper.isServerOperatorsSupported) logger.warning("Getting the operators list is not supported on this version. Next best thing is directly reading ops.txt...");
 
+        // register our events
         pluginManager.registerEvents(new RREventHandler(), this);
 
+        // then check and register the appropriate events for the env
         if (PlayerChat.isSupported) {
             pluginManager.registerEvents(new PlayerChat(), this);
         } else {
@@ -86,6 +111,7 @@ public final class RRDiscordBridge extends JavaPlugin {
         }
 
         logger.info(String.format("RRDiscordBridge v%s has started.", version));
+        // send "Server Started"
         DiscordBot.sendEvent(Settings.Events.SERVER_START, new MessageEmbed.AuthorInfo(null, null, null, null), null, Color.GREEN, "Server started!");
     }
 

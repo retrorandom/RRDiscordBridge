@@ -1,4 +1,4 @@
-package io.github.dexrnzacattack.rrdiscordbridge;
+package io.github.dexrnzacattack.rrdiscordbridge.helpers;
 
 public class ReflectionHelper {
     public static boolean isMotdSupported = doesMethodExist("org.bukkit.Server", "getMotd");
@@ -9,7 +9,7 @@ public class ReflectionHelper {
 
     public static boolean isServerOperatorsSupported = doesMethodExist("org.bukkit.Server", "getOperators");
 
-    /** Does a method exist? I take strings here to let this method do all the creation. */
+    /** Does a method exist? I take strings here to let this method do all the shit. */
     public static boolean doesMethodExist(String clazz, String method) {
         try {
             Class<?> clazzz = Class.forName(clazz);

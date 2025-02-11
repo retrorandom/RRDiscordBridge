@@ -1,7 +1,7 @@
 package io.github.dexrnzacattack.rrdiscordbridge.discord;
 
 import io.github.dexrnzacattack.rrdiscordbridge.RRDiscordBridge;
-import io.github.dexrnzacattack.rrdiscordbridge.ReflectionHelper;
+import io.github.dexrnzacattack.rrdiscordbridge.helpers.ReflectionHelper;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
