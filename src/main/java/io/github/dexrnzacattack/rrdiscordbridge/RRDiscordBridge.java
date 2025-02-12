@@ -11,17 +11,23 @@ import io.github.dexrnzacattack.rrdiscordbridge.bukkit.FancyBroadcastCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.bukkit.ReloadConfigCommand;
 import io.github.dexrnzacattack.rrdiscordbridge.discord.DiscordBot;
 import io.github.dexrnzacattack.rrdiscordbridge.helpers.ReflectionHelper;
+import me.scarsz.jdaappender.ChannelLoggingHandler;
+import me.scarsz.jdaappender.LogLevel;
+import me.scarsz.jdaappender.adapter.JavaLoggingAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Handler;
 import java.util.logging.Logger;
 
 public final class RRDiscordBridge extends JavaPlugin {
@@ -32,7 +38,7 @@ public final class RRDiscordBridge extends JavaPlugin {
     public static Logger logger;
     public static PluginManager pluginManager;
     public static ChatExtensions extensions;
-    public static ConsoleLogUtil logHandler;
+    public static ChannelLoggingHandler logHandler;
 
     @Override
     public void onEnable() {
@@ -54,17 +60,33 @@ public final class RRDiscordBridge extends JavaPlugin {
             serverStartTime = System.currentTimeMillis();
             try {
                 // start the discord bot
+                logger.info("Starting Discord relay bot");
                 DiscordBot.start();
                 // register console channel handler thing (logs all console messages to discord if set up)
                 if (!settings.consoleChannelId.isEmpty()) {
                     logger.info("Registering console channel handler");
-                    logHandler = new ConsoleLogUtil(settings.consoleChannelId);
-                    // this only adds the handler to all plugin loggers on paper.........
-                    // doesn't work on older bukkit versions I think
-                    // Logger.getLogger("").addHandler(logHandler);
+                    logHandler = new ChannelLoggingHandler(() -> DiscordBot.jda.getTextChannelById(settings.consoleChannelId), config -> {
+                        config.setLogLevels(EnumSet.allOf(LogLevel.class));
+                        config.mapLoggerName("Minecraft", "");
+                    });
 
-                    // this only adds the handler for the plugin's logger on paper (untested with newer bukkit)
-                     logger.addHandler(logHandler);
+                    try {
+                        Class.forName("org.apache.logging.log4j.core.Logger");
+                        logHandler.attachLog4jLogging();
+                    } catch (Throwable ignored) {
+                        logHandler.attachJavaLogging();
+
+                        //Because for some reason instead of letting me simply do .attachJavaLogging("Minecraft"), I have to do this.
+                        Logger global = Logger.getLogger("");
+                        Handler[] handlers = global.getHandlers();
+
+                        for (Handler handler : handlers) {
+                            if (handler.getClass() == JavaLoggingAdapter.class) {
+                                logger.addHandler(handler);
+                            }
+                        }
+                    }
+                    logHandler.schedule();
                 }
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -72,6 +94,7 @@ public final class RRDiscordBridge extends JavaPlugin {
             // setup chat extensions
             extensions = new ChatExtensions();
         }
+
         // register all the in-game commands
         getCommand("reloadrdbconfig").setExecutor(new ReloadConfigCommand());
         getCommand("dcbroadcast").setExecutor(new FancyBroadcastCommand());
@@ -140,5 +163,17 @@ public final class RRDiscordBridge extends JavaPlugin {
 
         // java has some weird ass syntax, why is it C++ method syntax?
         eventFuture.thenRun(DiscordBot::stop);
+
+        if (logHandler != null) {
+            //Because of the hack above we have to manually remove the handler before shutting down the log manager.
+            Handler[] handlers = logger.getHandlers();
+            for (Handler handler : handlers) {
+                if (handler.getClass() == JavaLoggingAdapter.class) {
+                    logger.removeHandler(handler);
+                }
+            }
+
+            logHandler.shutdown();
+        }
     }
 }
