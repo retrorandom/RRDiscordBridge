@@ -19,7 +19,6 @@ import org.bukkit.entity.Player;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.slf4j.LoggerFactory;
 
 import java.awt.*;
 import java.io.IOException;
