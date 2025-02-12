@@ -10,12 +10,20 @@ base {
 repositories {
     mavenLocal()
     mavenCentral()
+
+    maven {
+        name = 'Scarsz'
+        url = 'https://nexus.scarsz.me/content/repositories/releases/'
+    }
 }
 
 dependencies {
     implementation shadow('com.google.code.gson:gson:2.11.0')
     implementation shadow('club.minnced:discord-webhooks:0.8.4')
     implementation shadow('net.dv8tion:JDA:5.2.1')
+    implementation shadow('me.scarsz.jdaappender:jda5:1.2.3')
+    implementation shadow("org.slf4j:slf4j-jdk14:2.0.16")
+
     compileOnly files('lib/bukkit.jar')
 }
 
