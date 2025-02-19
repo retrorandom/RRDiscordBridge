@@ -1,7 +1,7 @@
 # Retro-Release Discord Bridge (RetroHaven version)
 For config info, check out [this](https://github.com/DexrnZacAttack/RRDiscordBridge/wiki/Config).
 
-Orignal VersionDownload: https://modrinth.com/plugin/rrdiscordbridge   
+Orignal Version Download: https://modrinth.com/plugin/rrdiscordbridge   
 
 
 ## Features
