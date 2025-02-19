@@ -19,6 +19,8 @@ Orignal Version Download: https://modrinth.com/plugin/rrdiscordbridge
   - Server Stop
   - /say
   - /me
+  - Slash commands used
+  - User app used (also activities)
 ## Removed for RetroHaven 
 - Relays the following information from Discord (configurable)
   - Channel message
@@ -27,8 +29,6 @@ Orignal Version Download: https://modrinth.com/plugin/rrdiscordbridge
   - Thread creation
   - Message pin
   - Poll created/ended (with results)
-  - Slash commands used
-  - User app used (also activities)
   - Message forwarded (probably not complete)
 - Chat Extensions (configurable)
   - **Extra info available in-game by typing `/cext help`**.
